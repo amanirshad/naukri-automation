@@ -1,0 +1,28 @@
+name: Update Naukri Profile
+
+on:
+  schedule:
+    # Daily at 9:00 AM IST (3:30 AM UTC)
+    - cron: '30 3 * * *'
+  workflow_dispatch:
+
+jobs:
+  update-profile:
+    # GitHub-hosted runners (US/EU) often cannot reach Naukri APIs.
+    # Use a self-hosted runner in India, or run locally with: npm run update
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Update Naukri profile
+        uses: Prateek-Wayne/naukri-resume-action@v1.0.1
+        with:
+          username: ${{ secrets.NAUKRI_USERNAME }}
+          password: ${{ secrets.NAUKRI_PASSWORD }}
+          profile_id: ${{ secrets.NAUKRI_PROFILE_ID }}
+          resume_path: |-
+            ./resumes/resume.pdf
+          profile_summary: ${{ vars.NAUKRI_PROFILE_SUMMARY }}
+          resume_headline: ${{ vars.NAUKRI_RESUME_HEADLINE }}

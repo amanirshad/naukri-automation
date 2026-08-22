@@ -1,0 +1,9 @@
+node_modules/
+.env
+.DS_Store
+*.log
+
+# Uncomment to keep resumes out of git (recommended for private repos only)
+# resumes/*.pdf
+# resumes/*.doc
+# resumes/*.docx
