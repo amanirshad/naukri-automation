@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "update": "node scripts/update-profile.js",
-    "update:dry-run": "node scripts/update-profile.js --dry-run"
+    "update:dry-run": "node scripts/update-profile.js --dry-run",
+    "sam:build": "sam build",
+    "sam:deploy": "sam deploy --guided --region ap-south-1"
   },
   "dependencies": {
     "axios": "^1.7.9",

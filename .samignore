@@ -1,0 +1,10 @@
+.aws-sam/
+.git/
+.github/
+.env
+.env.*
+launchd/
+*.md
+samconfig.toml
+samconfig.toml.example
+.DS_Store

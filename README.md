@@ -1,133 +1,112 @@
 # Naukri Profile Automation
 
-Automatically keep your [Naukri.com](https://www.naukri.com) profile active by uploading resumes and refreshing your profile summary — based on [Prateek-Wayne/naukri-resume-action](https://github.com/Prateek-Wayne/naukri-resume-action).
+Keep your [Naukri.com](https://www.naukri.com) profile active from **India** via an **AWS Lambda in Mumbai**, scheduled by **GitHub Actions**.
 
-## What it does
+Based on [Prateek-Wayne/naukri-resume-action](https://github.com/Prateek-Wayne/naukri-resume-action).
 
-- Uploads a resume (rotates if you have multiple)
-- Updates your profile summary (adds a timestamp to keep it "fresh")
-- Updates your resume headline
-- Can run locally on your Mac or via GitHub Actions
+## Architecture
 
-## Quick start (local — recommended)
+```
+GitHub Actions (cron / manual)
+        │  aws lambda invoke
+        ▼
+Lambda ap-south-1 (Mumbai)  ← Naukri login + resume upload
+        ▼
+     Naukri APIs
+```
 
-Since you're in India, running locally on your Mac is the simplest option. No self-hosted runner needed.
+GitHub only triggers the job. All Naukri traffic comes from Mumbai.
 
-### 1. Install dependencies
+## Prerequisites
+
+1. AWS account + [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) + [SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html)
+2. Resume PDF in `resumes/`
+3. Naukri credentials + [profile ID](https://github.com/Prateek-Wayne/naukri-resume-action#finding-your-profile-id-)
+4. Edit `config/profile.json` (summary ≥ 50 chars, headline ≤ 250)
+
+## 1. Deploy Lambda (Mumbai)
 
 ```bash
-cd naukri-automation
 npm install
+# Put your resume PDF in resumes/
+sam build
+sam deploy --guided --region ap-south-1
 ```
 
-### 2. Configure credentials
+When prompted, set:
+
+| Parameter | Value |
+|-----------|--------|
+| Stack name | `naukri-profile-updater` |
+| Region | **`ap-south-1`** (required) |
+| NaukriUsername / Password / ProfileId | your credentials |
+| Confirm IAM role creation | Yes |
+
+Optional: copy `samconfig.toml.example` → `samconfig.toml` after the first guided deploy.
+
+### Test Lambda once
 
 ```bash
-cp .env.example .env
+aws lambda invoke \
+  --function-name naukri-profile-updater \
+  --region ap-south-1 \
+  --cli-binary-format raw-in-base64-out \
+  --payload '{"dryRun":false}' \
+  /tmp/out.json && cat /tmp/out.json
 ```
 
-Edit `.env` with your Naukri credentials:
+If login fails from Lambda, Naukri may be blocking AWS IPs — fall back to local `npm run update`.
 
-| Variable | Description |
-|----------|-------------|
-| `NAUKRI_USERNAME` | Your Naukri login email |
-| `NAUKRI_PASSWORD` | Your Naukri password |
-| `NAUKRI_PROFILE_ID` | Your Naukri profile ID (see below) |
+## 2. GitHub Actions → invoke Lambda
 
-### 3. Find your Profile ID
+### Create an IAM user for GitHub (least privilege)
 
-1. Log in to [naukri.com](https://www.naukri.com)
-2. Go to **My Profile** → **View & Edit Profile**
-3. Open browser DevTools (F12) → **Network** tab
-4. Refresh the page and look for API calls containing your `profileId`
+1. IAM → Users → Create user (e.g. `github-naukri-invoker`)
+2. Attach an inline policy from `docs/github-actions-iam-policy.json` (replace `ACCOUNT_ID`)
+3. Create access keys
 
-Video guide in the [original repo README](https://github.com/Prateek-Wayne/naukri-resume-action#finding-your-profile-id-).
+### Add repo secrets
 
-### 4. Add your resume
+**Settings → Secrets and variables → Actions:**
 
-Place one or more resume files in `resumes/`:
+| Secret | Value |
+|--------|--------|
+| `AWS_ACCESS_KEY_ID` | from the IAM user |
+| `AWS_SECRET_ACCESS_KEY` | from the IAM user |
+
+### Run
+
+- Automatic: daily **9:00 AM IST**
+- Manual: Actions → **Invoke Naukri Lambda** → Run workflow (optional dry run)
+
+## Local testing (optional)
 
 ```bash
-cp ~/Downloads/MyResume.pdf resumes/
-```
-
-Supported formats: PDF, DOC, DOCX
-
-### 5. Customize profile text
-
-Edit `config/profile.json`:
-
-```json
-{
-  "profile_summary": "Your summary (minimum 50 characters)...",
-  "resume_headline": "Software Engineer | Full Stack Developer"
-}
-```
-
-### 6. Run
-
-```bash
-# Dry run (no API calls)
+cp .env.example .env   # fill credentials
+npm install
 npm run update:dry-run
-
-# Actually update your profile
 npm run update
 ```
 
-## Schedule daily updates (macOS)
-
-To run automatically every day at 9 AM:
-
-1. Copy and edit the launchd plist:
-
-```bash
-cp launchd/com.naukri.profile-update.plist.example ~/Library/LaunchAgents/com.naukri.profile-update.plist
-```
-
-2. Update `WorkingDirectory` in the plist to match your project path
-3. Load the job:
-
-```bash
-launchctl load ~/Library/LaunchAgents/com.naukri.profile-update.plist
-```
-
-Logs are written to `/tmp/naukri-update.log`.
-
-## GitHub Actions (optional)
-
-GitHub-hosted runners in US/EU **cannot** reach Naukri APIs. You need a **self-hosted runner** in India (e.g. AWS EC2 Mumbai, or your own machine).
-
-### Setup
-
-1. Push this repo to GitHub
-2. Add secrets under **Settings → Secrets and variables → Actions**:
-   - `NAUKRI_USERNAME`
-   - `NAUKRI_PASSWORD`
-   - `NAUKRI_PROFILE_ID`
-3. Add repository variables (optional):
-   - `NAUKRI_PROFILE_SUMMARY`
-   - `NAUKRI_RESUME_HEADLINE`
-4. [Register a self-hosted runner](https://docs.github.com/en/actions/hosting-your-own-runners/managing-self-hosted-runners/adding-self-hosted-runners) on a machine in India
-5. The workflow runs daily at 9 AM IST, or trigger manually from the Actions tab
-
-## Project structure
+## Project layout
 
 ```
 naukri-automation/
-├── config/profile.json       # Profile summary & headline
-├── resumes/                  # Your resume file(s)
-├── scripts/update-profile.js # Local runner
-├── src/api/                  # Naukri API client
-├── .github/workflows/        # GitHub Actions workflow
-└── .env                      # Credentials (not committed)
+├── lambda/handler.js              # Lambda entrypoint
+├── src/runUpdate.js               # Shared Naukri update logic
+├── src/api/                       # Login, upload, profile APIs
+├── config/profile.json
+├── resumes/                       # Bundled into Lambda zip
+├── template.yaml                  # SAM (ap-south-1)
+└── .github/workflows/             # Invokes Lambda only
 ```
+
+## Cost
+
+Daily invoke ≈ free under AWS Lambda free tier. No EventBridge needed.
 
 ## Security
 
-- Never commit `.env` or credentials
-- Use GitHub Secrets for Actions
-- Consider using a dedicated Naukri password or app-specific credentials
-
-## Credits
-
-Built on [Prateek-Wayne/naukri-resume-action](https://github.com/Prateek-Wayne/naukri-resume-action).
+- Never commit `.env` or `samconfig.toml` with real passwords
+- GitHub IAM user should only have `lambda:InvokeFunction`
+- Naukri password lives in Lambda env (set at `sam deploy` time)

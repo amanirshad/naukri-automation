@@ -1,28 +1,54 @@
-name: Update Naukri Profile
+name: Invoke Naukri Lambda
 
+# GitHub Actions only schedules/invokes — all Naukri login/upload runs in Mumbai Lambda.
 on:
   schedule:
-    # Daily at 9:00 AM IST (3:30 AM UTC)
+    # Daily 9:00 AM IST (3:30 AM UTC)
     - cron: '30 3 * * *'
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (no Naukri API changes)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
 
 jobs:
-  update-profile:
-    # GitHub-hosted runners (US/EU) often cannot reach Naukri APIs.
-    # Use a self-hosted runner in India, or run locally with: npm run update
-    runs-on: self-hosted
+  invoke-lambda:
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: ap-south-1
+      LAMBDA_FUNCTION_NAME: naukri-profile-updater
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Update Naukri profile
-        uses: Prateek-Wayne/naukri-resume-action@v1.0.1
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          username: ${{ secrets.NAUKRI_USERNAME }}
-          password: ${{ secrets.NAUKRI_PASSWORD }}
-          profile_id: ${{ secrets.NAUKRI_PROFILE_ID }}
-          resume_path: |-
-            ./resumes/resume.pdf
-          profile_summary: ${{ vars.NAUKRI_PROFILE_SUMMARY }}
-          resume_headline: ${{ vars.NAUKRI_RESUME_HEADLINE }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Invoke Mumbai Lambda
+        id: invoke
+        run: |
+          set -euo pipefail
+          DRY_RUN="false"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" = "true" ]; then
+            DRY_RUN="true"
+          fi
+          PAYLOAD=$(jq -nc --argjson dryRun "$DRY_RUN" '{dryRun: $dryRun}')
+          aws lambda invoke \
+            --function-name "$LAMBDA_FUNCTION_NAME" \
+            --cli-binary-format raw-in-base64-out \
+            --payload "$PAYLOAD" \
+            response.json
+          echo "Lambda response:"
+          cat response.json
+          STATUS=$(jq -r '.statusCode // empty' response.json)
+          SUCCESS=$(jq -r '.body.success // empty' response.json)
+          if [ "$STATUS" = "500" ] || [ "$SUCCESS" = "false" ]; then
+            echo "Lambda reported failure"
+            exit 1
+          fi
