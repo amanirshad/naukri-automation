@@ -60,7 +60,7 @@ function selectResumeByDate(resumePaths) {
 }
 
 /**
- * Core Naukri update flow — used by local CLI and Mumbai Lambda.
+ * Naukri Automation — core update flow (local CLI + Mumbai Lambda).
  * @param {{ dryRun?: boolean }} options
  */
 export async function runUpdate(options = {}) {

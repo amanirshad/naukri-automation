@@ -1,6 +1,8 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: Naukri profile updater — Lambda in Mumbai, invoked by GitHub Actions
+Description: >
+  Naukri Automation — Mumbai Lambda that refreshes Naukri profile summary,
+  headline, and resume. Invoked by GitHub Actions (no EventBridge).
 
 Parameters:
   NaukriUsername:
@@ -16,11 +18,11 @@ Parameters:
   NaukriProfileSummary:
     Type: String
     Default: ''
-    Description: Optional profile summary override (min 50 chars). Empty = use config/profile.json
+    Description: Optional summary override (min 50 chars). Empty uses config/profile.json
   NaukriResumeHeadline:
     Type: String
     Default: ''
-    Description: Optional headline override (max 250 chars). Empty = use config/profile.json
+    Description: Optional headline override (max 250 chars). Empty uses config/profile.json
 
 Globals:
   Function:
@@ -37,7 +39,7 @@ Resources:
       FunctionName: naukri-profile-updater
       CodeUri: .
       Handler: lambda/handler.handler
-      Description: Login to Naukri and refresh profile/resume from Mumbai
+      Description: Naukri Automation — login and profile refresh from Mumbai
       Environment:
         Variables:
           NAUKRI_USERNAME: !Ref NaukriUsername
@@ -47,6 +49,7 @@ Resources:
           NAUKRI_RESUME_HEADLINE: !Ref NaukriResumeHeadline
       Tags:
         Project: naukri-automation
+        Component: profile-updater
 
 Outputs:
   FunctionName:
@@ -56,5 +59,5 @@ Outputs:
     Description: Lambda ARN
     Value: !GetAtt NaukriUpdaterFunction.Arn
   InvokeHint:
-    Description: How GitHub Actions should invoke this function
+    Description: Example invoke command
     Value: !Sub 'aws lambda invoke --function-name ${NaukriUpdaterFunction} --region ap-south-1 /tmp/out.json'

@@ -1,6 +1,6 @@
 name: Invoke Naukri Lambda
 
-# GitHub Actions only schedules/invokes — all Naukri login/upload runs in Mumbai Lambda.
+# Schedules and invokes Mumbai Lambda. Naukri login/upload never runs on the runner.
 on:
   schedule:
     # Daily 9:00 AM IST (3:30 AM UTC)

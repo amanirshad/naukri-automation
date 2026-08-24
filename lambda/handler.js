@@ -1,10 +1,10 @@
 import { runUpdate } from '../src/runUpdate.js';
 
 /**
- * AWS Lambda entrypoint (region: ap-south-1 / Mumbai).
- * Invoked by GitHub Actions via `aws lambda invoke`.
+ * Naukri Automation — AWS Lambda entry (ap-south-1 / Mumbai).
+ * Triggered by GitHub Actions via `aws lambda invoke`.
  *
- * Optional event fields:
+ * Event (optional):
  *   { "dryRun": true }
  */
 export async function handler(event = {}) {

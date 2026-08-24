@@ -1,13 +1,17 @@
 {
   "name": "naukri-automation",
-  "version": "1.0.0",
-  "description": "Automatically keep your Naukri.com profile active",
+  "version": "1.1.0",
+  "private": true,
+  "description": "GitHub-scheduled Naukri profile refresher via AWS Lambda in Mumbai",
   "type": "module",
   "scripts": {
     "update": "node scripts/update-profile.js",
     "update:dry-run": "node scripts/update-profile.js --dry-run",
     "sam:build": "sam build",
     "sam:deploy": "sam deploy --guided --region ap-south-1"
+  },
+  "engines": {
+    "node": ">=20"
   },
   "dependencies": {
     "axios": "^1.7.9",

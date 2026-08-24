@@ -1,5 +1,5 @@
-# Copy to samconfig.toml after first `sam deploy --guided`, or use as reference.
-# Region MUST stay ap-south-1 (Mumbai) so Naukri APIs see an India IP.
+# Example SAM deploy config for Naukri Automation.
+# Copy to samconfig.toml after first deploy. Keep region ap-south-1 (Mumbai).
 
 version = 0.1
 
@@ -10,5 +10,4 @@ s3_prefix = "naukri-profile-updater"
 region = "ap-south-1"
 confirm_changeset = true
 capabilities = "CAPABILITY_IAM"
-# Pass secrets at deploy time (do not commit real values):
 # parameter_overrides = "NaukriUsername=you@example.com NaukriPassword=*** NaukriProfileId=***"
