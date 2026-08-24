@@ -1,12 +1,21 @@
-node_modules/
+# Secrets & local config
 .env
-.DS_Store
-*.log
-.aws-sam/
+.env.*
+!.env.example
 samconfig.toml
-response.json
+*.pem
+*.key
+credentials.json
 
-# Uncomment to keep resumes out of git (recommended for private repos only)
+# Build / runtime artifacts
+node_modules/
+.aws-sam/
+response.json
+/tmp/
+*.log
+.DS_Store
+
+# Uncomment to keep resumes out of git
 # resumes/*.pdf
 # resumes/*.doc
 # resumes/*.docx

@@ -3,8 +3,11 @@
 .github/
 .env
 .env.*
+!.env.example
 launchd/
 *.md
 samconfig.toml
 samconfig.toml.example
 .DS_Store
+*.log
+response.json
