@@ -15,7 +15,6 @@ response.json
 *.log
 .DS_Store
 
-# Uncomment to keep resumes out of git
-# resumes/*.pdf
-# resumes/*.doc
-# resumes/*.docx
+# Resumes stay local / Lambda-only — do not publish
+resumes/*
+!resumes/.gitkeep
