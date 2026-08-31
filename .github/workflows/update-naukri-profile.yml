@@ -3,8 +3,8 @@ name: Invoke Naukri Lambda
 # Schedules and invokes Mumbai Lambda. Naukri login/upload never runs on the runner.
 on:
   schedule:
-    # Daily 9:00 AM IST (3:30 AM UTC)
-    - cron: '30 3 * * *'
+    # Daily 9:29 AM IST (3:59 AM UTC)
+    - cron: '59 3 * * *'
   workflow_dispatch:
     inputs:
       dry_run:
