@@ -2,20 +2,21 @@
 
 Serverless Naukri.com profile refresher for India.
 
-**GitHub Actions** schedules the job. **AWS Lambda (Mumbai)** logs in, updates your summary/headline, and re-uploads your resume — so recruiters see a recently updated profile without you doing it by hand.
+**EventBridge Scheduler** fires the Lambda every day at **9:00 AM IST**. **AWS Lambda (Mumbai)** logs in, updates your summary/headline, and re-uploads your resume — so recruiters see a recently updated profile without you doing it by hand.
+
+GitHub Actions is optional and **manual-only** (GitHub’s cron is often delayed or skipped).
 
 ## Why this setup
 
 | Piece | Role |
 |-------|------|
-| GitHub Actions | Free cron + manual trigger (runs anywhere) |
+| EventBridge Scheduler | Reliable daily run at 9:00 AM `Asia/Kolkata` |
 | Lambda `ap-south-1` | All Naukri API calls from India |
-| No EventBridge | Scheduler stays in GitHub; AWS bill stays near zero |
+| GitHub Actions | Optional on-demand invoke (no schedule) |
 
 ```
-GitHub Actions (cron 9 AM IST / manual)
+EventBridge Scheduler (cron 9:00 AM Asia/Kolkata)
               │
-              │  aws lambda invoke
               ▼
      Lambda · Mumbai (ap-south-1)
               │
@@ -25,14 +26,16 @@ GitHub Actions (cron 9 AM IST / manual)
               └── upload resume PDF
               ▼
          Naukri.com APIs
+
+Optional: GitHub Actions (manual) → aws lambda invoke → same Lambda
 ```
 
 ## Features
 
-- Daily (or on-demand) profile freshness
+- Daily profile freshness at a fixed IST wall-clock time
 - Resume upload with date-based rotation if you add multiple PDFs
 - Configurable summary (≥ 50 chars) and headline (≤ 250 chars)
-- Credentials stored as Lambda env vars; GitHub only holds AWS invoke keys
+- Credentials stored as Lambda env vars; GitHub only holds AWS invoke keys (manual runs)
 - Optional local CLI for debugging on your Mac
 
 ## Prerequisites
@@ -76,7 +79,10 @@ sam deploy --guided --region ap-south-1
 | Stack name | `naukri-profile-updater` |
 | Region | **`ap-south-1`** |
 | NaukriUsername / Password / ProfileId | your Naukri credentials |
+| ScheduleEnabled | `ENABLED` (default) |
 | Create IAM roles | Yes |
+
+This deploy creates the Lambda **and** the EventBridge Scheduler rule `naukri-profile-updater-daily-9am-ist` (`cron(0 9 * * ? *)` in `Asia/Kolkata`, flexible window off).
 
 ```bash
 # Smoke test
@@ -88,7 +94,21 @@ aws lambda invoke \
   /tmp/out.json && cat /tmp/out.json
 ```
 
-## Wire GitHub Actions
+### Confirm the schedule
+
+```bash
+aws scheduler get-schedule \
+  --name naukri-profile-updater-daily-9am-ist \
+  --region ap-south-1
+```
+
+Pause without redeploying:
+
+```bash
+sam deploy --parameter-overrides ScheduleEnabled=DISABLED --region ap-south-1
+```
+
+## Optional: manual GitHub Actions
 
 ### IAM user (invoke only)
 
@@ -105,10 +125,9 @@ aws lambda invoke \
 | `AWS_ACCESS_KEY_ID` | IAM access key |
 | `AWS_SECRET_ACCESS_KEY` | IAM secret |
 
-### Schedule
+### Run on demand
 
-- Automatic: every day at **9:00 AM IST**
-- Manual: Actions → **Invoke Naukri Lambda** → Run workflow
+Actions → **Invoke Naukri Lambda** → Run workflow
 
 ## Local CLI (optional)
 
@@ -130,16 +149,16 @@ naukri-automation/
 ├── src/api/                    # Naukri HTTP client
 ├── config/profile.json         # Summary + headline
 ├── resumes/                    # Packaged into the Lambda zip
-├── template.yaml               # SAM · ap-south-1 · arm64
+├── template.yaml               # SAM · EventBridge Scheduler · ap-south-1 · arm64
 ├── docs/github-actions-iam-policy.json
-└── .github/workflows/          # Invokes Lambda only
+└── .github/workflows/          # Manual invoke only
 ```
 
 ## Cost & security
 
-- Typical daily use fits in the Lambda free tier
+- Typical daily use fits in the Lambda free tier; one EventBridge schedule/day is effectively free
 - Never commit `.env` or a `samconfig.toml` with real passwords
-- GitHub IAM principal: `lambda:InvokeFunction` only
+- GitHub IAM principal: `lambda:InvokeFunction` only (manual runs)
 - Naukri secrets live on the Lambda, set at deploy time
 
 ## License

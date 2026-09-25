@@ -2,7 +2,8 @@ import { runUpdate } from '../src/runUpdate.js';
 
 /**
  * Naukri Automation — AWS Lambda entry (ap-south-1 / Mumbai).
- * Triggered by GitHub Actions via `aws lambda invoke`.
+ * Triggered by EventBridge Scheduler (daily 9:00 AM IST) or
+ * GitHub Actions / CLI via `aws lambda invoke`.
  *
  * Event (optional):
  *   { "dryRun": true }

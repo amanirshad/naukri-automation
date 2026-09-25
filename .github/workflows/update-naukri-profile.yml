@@ -1,10 +1,8 @@
 name: Invoke Naukri Lambda
 
-# Schedules and invokes Mumbai Lambda. Naukri login/upload never runs on the runner.
+# Manual only — daily schedule is EventBridge Scheduler (Asia/Kolkata) on the Lambda.
+# GitHub Actions cron is not used; it is often delayed or skipped.
 on:
-  schedule:
-    # Daily 9:29 AM IST (3:59 AM UTC)
-    - cron: '59 3 * * *'
   workflow_dispatch:
     inputs:
       dry_run:
@@ -35,7 +33,7 @@ jobs:
         run: |
           set -euo pipefail
           DRY_RUN="false"
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" = "true" ]; then
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
             DRY_RUN="true"
           fi
           PAYLOAD=$(jq -nc --argjson dryRun "$DRY_RUN" '{dryRun: $dryRun}')
