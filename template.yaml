@@ -2,7 +2,8 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: >
   Naukri Automation — Mumbai Lambda that refreshes Naukri profile summary,
-  headline, and resume. Invoked by GitHub Actions (no EventBridge).
+  headline, and resume. Scheduled daily by EventBridge Scheduler (Asia/Kolkata);
+  optional manual invoke via GitHub Actions.
 
 Parameters:
   NaukriUsername:
@@ -23,6 +24,13 @@ Parameters:
     Type: String
     Default: ''
     Description: Optional headline override (max 250 chars). Empty uses config/profile.json
+  ScheduleEnabled:
+    Type: String
+    Default: 'ENABLED'
+    AllowedValues:
+      - ENABLED
+      - DISABLED
+    Description: EventBridge Scheduler state for the daily 9:00 AM IST run
 
 Globals:
   Function:
@@ -47,6 +55,18 @@ Resources:
           NAUKRI_PROFILE_ID: !Ref NaukriProfileId
           NAUKRI_PROFILE_SUMMARY: !Ref NaukriProfileSummary
           NAUKRI_RESUME_HEADLINE: !Ref NaukriResumeHeadline
+      Events:
+        # EventBridge Scheduler — reliable wall-clock time (unlike GitHub Actions cron)
+        DailyNineAmIst:
+          Type: ScheduleV2
+          Properties:
+            Name: naukri-profile-updater-daily-9am-ist
+            Description: Daily Naukri profile refresh at 9:00 AM IST
+            ScheduleExpression: cron(0 9 * * ? *)
+            ScheduleExpressionTimezone: Asia/Kolkata
+            FlexibleTimeWindow:
+              Mode: 'OFF'
+            State: !Ref ScheduleEnabled
       Tags:
         Project: naukri-automation
         Component: profile-updater
@@ -58,6 +78,9 @@ Outputs:
   FunctionArn:
     Description: Lambda ARN
     Value: !GetAtt NaukriUpdaterFunction.Arn
+  DailyScheduleName:
+    Description: EventBridge Scheduler name (9:00 AM Asia/Kolkata)
+    Value: naukri-profile-updater-daily-9am-ist
   InvokeHint:
     Description: Example invoke command
     Value: !Sub 'aws lambda invoke --function-name ${NaukriUpdaterFunction} --region ap-south-1 /tmp/out.json'

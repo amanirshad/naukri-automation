@@ -10,4 +10,4 @@ s3_prefix = "naukri-profile-updater"
 region = "ap-south-1"
 confirm_changeset = true
 capabilities = "CAPABILITY_IAM"
-# parameter_overrides = "NaukriUsername=you@example.com NaukriPassword=*** NaukriProfileId=***"
+# parameter_overrides = "NaukriUsername=you@example.com NaukriPassword=*** NaukriProfileId=*** ScheduleEnabled=ENABLED"
